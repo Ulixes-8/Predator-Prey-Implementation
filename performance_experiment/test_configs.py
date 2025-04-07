@@ -8,14 +8,16 @@ different versions of the predator-prey simulation code.
 import os
 from typing import Dict, List, Any
 
-# Define landscape files
-LANDSCAPE_FILES = {
-    'tiny': 'animals/1x1.dat',         # 1x1 grid
-    'small': 'animals/10x20.dat',      # 10x20 grid
-    'medium': 'animals/20x10.dat',     # 20x10 grid  
-    'large': 'animals/small.dat',      # 50x50 grid (despite the name)
-}
+# Get the absolute path to the project root
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
+# Update LANDSCAPE_FILES with absolute paths
+LANDSCAPE_FILES = {
+    'small': os.path.join(PROJECT_ROOT, 'animals', '10x20.dat'),
+    'medium': os.path.join(PROJECT_ROOT, 'animals', '20x10.dat'),
+    'large': os.path.join(PROJECT_ROOT, 'animals', 'small.dat'),
+    'tiny': os.path.join(PROJECT_ROOT, 'animals', '1x1.dat'),
+}
 # Base configuration with default parameters
 BASE_CONFIG = {
     'birth_mice': 0.08,        # Birth rate of mice

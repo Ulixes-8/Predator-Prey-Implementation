@@ -110,10 +110,66 @@ class BenchmarkSuite:
         self.results[version_name] = self.current_version
         
         print(f"Benchmarking completed for version: {version_name}")
+
+
+    def _measure_cpu_usage(self, cmd: List[str]) -> float:
+        """
+        Estimate CPU usage percentage of a command.
+        
+        Args:
+            cmd: Command to execute as a list of strings
+        
+        Returns:
+            Estimated CPU usage percentage
+        """
+        try:
+            import psutil
+            import time
+            
+            # Measure CPU usage using subprocess
+            start_time = time.time()
+            start_cpu_time = time.process_time()
+            
+            # Run the command
+            subprocess.run(cmd, check=True)
+            
+            # Calculate times
+            end_time = time.time()
+            end_cpu_time = time.process_time()
+            
+            # Calculate CPU usage
+            wall_time = end_time - start_time
+            cpu_time = end_cpu_time - start_cpu_time
+            
+            # Estimate CPU usage as percentage
+            if wall_time > 0:
+                return (cpu_time / wall_time) * 100
+            return 0.0
+        
+        except ImportError:
+            print("Warning: psutil not available. Falling back to simple CPU time measurement.")
+            start_time = time.time()
+            start_cpu_time = time.process_time()
+            
+            subprocess.run(cmd, check=True)
+            
+            end_time = time.time()
+            end_cpu_time = time.process_time()
+            
+            wall_time = end_time - start_time
+            cpu_time = end_cpu_time - start_cpu_time
+            
+            if wall_time > 0:
+                return (cpu_time / wall_time) * 100
+            return 0.0
+        
+        except Exception as e:
+            print(f"Error measuring CPU usage: {e}")
+            return 0.0
     
     def _run_benchmark_for_config(self, config: Dict[str, Any]) -> None:
         """
-        Run benchmarks for a specific configuration.
+        Run benchmark for a specific configuration.
         
         Args:
             config: Configuration dictionary with parameters
@@ -121,13 +177,13 @@ class BenchmarkSuite:
         config_name = config['name']
         print(f"  Running configuration: {config_name}")
         
-        # Create directory for this configuration
+        # Create directory for this specific configuration
         config_dir = os.path.join(
             self.output_dir, 
             self.current_version['name'], 
             config_name
         )
-        ensure_dir_exists(config_dir)
+        os.makedirs(config_dir, exist_ok=True)
         
         times = []
         memory_usages = []
@@ -137,95 +193,139 @@ class BenchmarkSuite:
         for i in range(self.repetitions):
             print(f"    Repetition {i+1}/{self.repetitions}")
             
-            # Create a clean working directory for this run
+            # Create a run-specific subdirectory
             run_dir = os.path.join(config_dir, f"run_{i+1}")
-            ensure_dir_exists(run_dir)
+            os.makedirs(run_dir, exist_ok=True)
             
-            # Change to the run directory
-            original_dir = os.getcwd()
-            os.chdir(run_dir)
+            # Construct profile path
+            profile_path = os.path.join(run_dir, f"profile_{i+1}.prof")
+            
+            # Construct command
+            cmd = [
+                "python", 
+                "-m", 
+                self.current_version['module_path'],
+                "-f", config["landscape_file"],
+                "-r", str(config["birth_mice"]),
+                "-a", str(config["death_mice"]),
+                "-k", str(config["diffusion_mice"]),
+                "-b", str(config["birth_foxes"]),
+                "-m", str(config["death_foxes"]),
+                "-l", str(config["diffusion_foxes"]),
+                "-dt", str(config["delta_t"]),
+                "-t", str(config["time_step"]),
+                "-d", str(config["duration"]),
+                "-ls", str(config["landscape_seed"]),
+                "-lp", str(config["landscape_prop"]),
+                "-lsm", str(config["landscape_smooth"])
+            ]
             
             try:
-                # Run the benchmark and collect metrics
-                execution_time, memory_usage, cpu_usage, profile_path = self._run_single_benchmark(
-                    config, os.path.join(run_dir, f"profile_{i+1}.prof")
-                )
+                # Profile with cProfile
+                start_time = time.time()
                 
+                # Run the simulation with profiling
+                subprocess.run([
+                    "python", "-m", "cProfile", 
+                    "-o", profile_path, 
+                    *cmd[1:]  # Skip the 'python' part
+                ], check=True, capture_output=True, text=True)
+                
+                end_time = time.time()
+                execution_time = end_time - start_time
                 times.append(execution_time)
-                memory_usages.append(memory_usage)
-                cpu_usages.append(cpu_usage)
                 
-                # Load profile data
-                if os.path.exists(profile_path):
-                    profile_stats = pstats.Stats(profile_path)
-                    profile_data.append(profile_stats)
-            finally:
-                # Change back to the original directory
-                os.chdir(original_dir)
+                # Load and analyze the profile data
+                profile_stats = pstats.Stats(profile_path)
+                profile_data.append(profile_stats)
+                
+                # Measure memory usage
+                mem_usage = self._measure_memory_usage(cmd)
+                memory_usages.append(mem_usage)
+                
+                # Estimate CPU usage
+                cpu_usage = self._measure_cpu_usage(cmd)
+                cpu_usages.append(cpu_usage)
+            
+            except subprocess.CalledProcessError as e:
+                print(f"    Error running benchmark: {e}")
+                print(f"    stdout: {e.stdout}")
+                print(f"    stderr: {e.stderr}")
+                continue
+            except Exception as e:
+                print(f"    Unexpected error: {e}")
+                continue
         
-        # Calculate statistics
-        time_stats = compute_statistics(times)
-        memory_stats = compute_statistics(memory_usages)
-        cpu_stats = compute_statistics(cpu_usages)
-        
-        # Extract landscape dimensions from file name
-        landscape_file = config["landscape_file"]
-        landscape_size = self._extract_landscape_size(landscape_file)
-        
-        # Create a new row for the results dataframe
-        new_row = {
-            'version': self.current_version['name'],
-            'version_desc': self.current_version['desc'],
-            'config_name': config_name,
-            'landscape_size': landscape_size,
-            'landscape_prop': config['landscape_prop'],
-            'duration': config['duration'],
-            'delta_t': config['delta_t'],
-            'birth_mice': config['birth_mice'],
-            'death_mice': config['death_mice'],
-            'diffusion_mice': config['diffusion_mice'],
-            'birth_foxes': config['birth_foxes'], 
-            'death_foxes': config['death_foxes'],
-            'diffusion_foxes': config['diffusion_foxes'],
-            'time_step': config['time_step'],
-            'landscape_smooth': config['landscape_smooth'],
-            'landscape_seed': config['landscape_seed'],
-            'execution_time': time_stats['mean'],
-            'execution_time_std': time_stats['std'],
-            'memory_usage': memory_stats['mean'],
-            'memory_usage_std': memory_stats['std'],
-            'cpu_usage': cpu_stats['mean'],
-            'cpu_usage_std': cpu_stats['std']
-        }
-        
-        # Add the new row to the results dataframe
-        self.results_df = pd.concat([
-            self.results_df, 
-            pd.DataFrame([new_row])
-        ], ignore_index=True)
-        
-        # Store these results in the current version
-        self.current_version['results'][config_name] = {
-            'config': config,
-            'times': times,
-            'time_stats': time_stats,
-            'memory_usages': memory_usages,
-            'memory_stats': memory_stats,
-            'cpu_usages': cpu_usages,
-            'cpu_stats': cpu_stats,
-            'profile_data': profile_data
-        }
-        
-        # Generate visualizations for this configuration
-        if profile_data:
-            self._generate_profile_visualization(
-                profile_data[0], 
-                os.path.join(config_dir, "profile_visualization")
-            )
-        
-        print(f"    Average execution time: {time_stats['mean']:.2f}s ± {time_stats['std']:.2f}s")
-        print(f"    Average memory usage: {memory_stats['mean']:.2f}MB ± {memory_stats['std']:.2f}MB")
-        print(f"    Average CPU usage: {cpu_stats['mean']:.2f}% ± {cpu_stats['std']:.2f}%")
+        # Only process results if we have some successful runs
+        if times:
+            # Extract landscape dimensions from file name
+            landscape_size = self._extract_landscape_size(config["landscape_file"])
+            
+            # Process and save results
+            avg_time = np.mean(times)
+            std_time = np.std(times)
+            avg_memory = np.mean(memory_usages)
+            std_memory = np.std(memory_usages)
+            avg_cpu = np.mean(cpu_usages)
+            std_cpu = np.std(cpu_usages)
+            
+            # Store in results dataframe
+            new_row = {
+                'version': self.current_version['name'],
+                'version_desc': self.current_version['desc'],
+                'config_name': config_name,
+                'landscape_size': landscape_size,
+                'landscape_prop': config['landscape_prop'],
+                'duration': config['duration'],
+                'delta_t': config['delta_t'],
+                'birth_mice': config['birth_mice'],
+                'death_mice': config['death_mice'],
+                'diffusion_mice': config['diffusion_mice'],
+                'birth_foxes': config['birth_foxes'], 
+                'death_foxes': config['death_foxes'],
+                'diffusion_foxes': config['diffusion_foxes'],
+                'time_step': config['time_step'],
+                'landscape_smooth': config['landscape_smooth'],
+                'landscape_seed': config['landscape_seed'],
+                'execution_time': avg_time,
+                'execution_time_std': std_time,
+                'memory_usage': avg_memory,
+                'memory_usage_std': std_memory,
+                'cpu_usage': avg_cpu,
+                'cpu_usage_std': std_cpu
+            }
+            
+            self.results_df = pd.concat([
+                self.results_df, 
+                pd.DataFrame([new_row])
+            ], ignore_index=True)
+            
+            # Save this configuration's results in version data
+            self.current_version['results'][config_name] = {
+                'times': times,
+                'avg_time': avg_time,
+                'std_time': std_time,
+                'memory_usages': memory_usages,
+                'avg_memory': avg_memory,
+                'std_memory': std_memory,
+                'cpu_usages': cpu_usages,
+                'avg_cpu': avg_cpu,
+                'std_cpu': std_cpu,
+                'profile_data': profile_data,
+                'config': config
+            }
+            
+            # Generate visualizations for this specific configuration
+            try:
+                self._generate_profile_visualization(profile_data[0], config_dir)
+            except Exception as e:
+                print(f"    Could not generate profile visualization: {e}")
+            
+            print(f"    Average execution time: {avg_time:.2f}s ± {std_time:.2f}s")
+            print(f"    Average memory usage: {avg_memory:.2f}MB ± {std_memory:.2f}MB")
+            print(f"    Average CPU usage: {avg_cpu:.2f}% ± {std_cpu:.2f}%")
+        else:
+            print("    No successful runs for this configuration")
     
     def _run_single_benchmark(self, config: Dict[str, Any], profile_path: str) -> Tuple[float, float, float, str]:
         """
