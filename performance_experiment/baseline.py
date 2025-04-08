@@ -40,7 +40,13 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
         fs=np.zeros((hh,wh),float)
         row=1
         for line in f.readlines():
-            values=[int(i) for i in line.split(" ")]
+            # values=[int(i) for i in line.split(" ")]
+
+            #NOTE: DELETE BELOW UNTIL REFACTORING PART
+            if line.strip():  # Skip blank lines
+                values = [int(i) for i in line.strip().split()]
+            #NOTE: DELETE ABOVE UNTIL REFACTORING PART
+
             # Read animals into array,padding with halo values.
 
             ms[row]=[0]+[i//10 for i in values]+[0]
@@ -97,7 +103,7 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
     else:
         am=0
         af=0
-    print("Averages. Timestep: {} Time (s): {:.1f} Mice: {:.17f} Foxes: {:.17f}".format(0,0,am,af))
+    # print("Averages. Timestep: {} Time (s): {:.1f} Mice: {:.17f} Foxes: {:.17f}".format(0,0,am,af))
     with open("averages.csv","w") as f:
         hdr="Timestep,Time,Mice,Foxes\n"
         f.write(hdr)
@@ -112,7 +118,7 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
             else:
                 am=0
                 af=0
-            print("Averages. Timestep: {} Time (s): {:.1f} Mice: {:.17f} Foxes: {:.17f}".format(i,i*dt,am,af))
+            # print("Averages. Timestep: {} Time (s): {:.1f} Mice: {:.17f} Foxes: {:.17f}".format(i,i*dt,am,af))
             with open("averages.csv","a") as f:
                 f.write("{},{:.1f},{:.17f},{:.17f}\n".format(i,i*dt,am,af))
             for x in range(1,h+1):
