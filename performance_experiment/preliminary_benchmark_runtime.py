@@ -29,6 +29,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Dict
 import psutil
+import threading
 
 # ── Import Simulation Entrypoint ──────────────────────────────────────────────
 from baseline import simCommLineIntf
@@ -61,8 +62,21 @@ def print_system_info() -> None:
     print("-" * 50)
 
 
-# ── Simulation Wrapper ─────────────────────────────────────────────────────────
-def run_simulation(landscape_file: str, land_prop: float, seed: int, cpu_override: int = None) -> float:
+# ── Simulation Wrapper with CPU Monitoring ─────────────────────────────────────
+def run_simulation(landscape_file: str, land_prop: float, seed: int, cpu_override: int = None) -> Tuple[float, float, int]:
+    """
+    Run simulation with the given parameters and monitor CPU usage.
+    
+    Args:
+        landscape_file: Path to landscape file
+        land_prop: Land proportion
+        seed: Random seed
+        cpu_override: Number of CPUs to use (or DEFAULT_CPU_COUNT if None)
+    
+    Returns:
+        Tuple[float, float, int]: (runtime in seconds, peak CPU utilization percentage, max active cores)
+    """
+    requested_cpu_count = cpu_override if cpu_override else DEFAULT_CPU_COUNT
     sys.argv = [
         f"{EXPERIMENT_TAG.lower()}.py",
         "--landscape-file", landscape_file,
@@ -70,15 +84,65 @@ def run_simulation(landscape_file: str, land_prop: float, seed: int, cpu_overrid
         "--landscape-seed", str(seed)
     ]
 
-    os.environ["OMP_NUM_THREADS"] = str(cpu_override if cpu_override else DEFAULT_CPU_COUNT)
-
+    os.environ["OMP_NUM_THREADS"] = str(requested_cpu_count)
+    print(f"[CPU INFO] Requested CPU count: {requested_cpu_count}")
+    
+    # Use shared variables to collect monitoring results
+    cpu_monitor_results = {
+        "max_usage": 0.0,
+        "max_active_cores": 0,
+        "monitoring_active": True
+    }
+    
+    # Define CPU monitoring function
+    def monitor_cpu_usage():
+        while cpu_monitor_results["monitoring_active"]:
+            # Get per-CPU utilization percentages
+            per_cpu_percent = psutil.cpu_percent(interval=0.1, percpu=True)
+            
+            # Calculate how many cores are actively being used (>50% utilization)
+            active_cores = sum(1 for cpu_percent in per_cpu_percent if cpu_percent > 50)
+            cpu_monitor_results["max_active_cores"] = max(cpu_monitor_results["max_active_cores"], active_cores)
+            
+            # Get overall CPU usage
+            usage = psutil.cpu_percent(interval=0)
+            cpu_monitor_results["max_usage"] = max(cpu_monitor_results["max_usage"], usage)
+            
+            # Print real-time feedback periodically
+            if active_cores > 0:
+                print(f"[CPU MONITOR] Current active cores: {active_cores}/{psutil.cpu_count(logical=True)}, Usage: {usage:.1f}%", 
+                      end="\r", flush=True)
+            
+            time.sleep(0.5)
+    
+    # Start monitoring thread
+    monitor_thread = threading.Thread(target=monitor_cpu_usage)
+    monitor_thread.daemon = True
+    monitor_thread.start()
+    
+    # Run simulation
     start = time.perf_counter()
     simCommLineIntf()
     end = time.perf_counter()
-
+    
+    # Stop monitoring
+    cpu_monitor_results["monitoring_active"] = False
+    monitor_thread.join(timeout=1.0)
+    
+    print()  # New line after carriage returns
+    print(f"[CPU MONITORING] Peak CPU usage: {cpu_monitor_results['max_usage']:.1f}%, "
+          f"Max active cores: {cpu_monitor_results['max_active_cores']}/{psutil.cpu_count(logical=True)}")
+    print(f"[CPU VERIFICATION] Requested: {requested_cpu_count}, "
+          f"Actual max cores active: {cpu_monitor_results['max_active_cores']}")
+    
+    # Calculate core utilization efficiency
+    if requested_cpu_count > 0:
+        efficiency = (cpu_monitor_results['max_active_cores'] / requested_cpu_count) * 100
+        print(f"[CPU EFFICIENCY] {efficiency:.1f}% of requested cores were utilized")
+    
     cleanup_artifacts()
-
-    return end - start
+    
+    return end - start, cpu_monitor_results["max_usage"], cpu_monitor_results["max_active_cores"]
 
 
 # ── Benchmark Function ────────────────────────────────────────────────────────
@@ -108,7 +172,7 @@ def benchmark(
 
             for seed in seeds:
                 print(f"[INFO] Running: {grid_key}, land={lp_key}, seed={seed}")
-                t = run_simulation(landscape_path, lp, seed, cpu_override)
+                t, _, _ = run_simulation(landscape_path, lp, seed, cpu_override)
                 times.append(t)
 
             print(f"[DEBUG] Completed {grid_key} | land={lp_key} → Mean: {np.mean(times):.3f}s ± {np.std(times):.3f}s\n")
@@ -128,7 +192,8 @@ def save_json(results: Dict, path: str, meta: dict) -> None:
         "python_version": platform.python_version(),
         "logical_cpus": psutil.cpu_count(logical=True),
         "physical_cpus": psutil.cpu_count(logical=False),
-        "omp_num_threads": meta.get("cpu_counts", [DEFAULT_CPU_COUNT])
+        "omp_num_threads": meta.get("cpu_counts", [DEFAULT_CPU_COUNT]),
+        "experiment_date": time.strftime("%Y-%m-%d %H:%M:%S")
     })
 
     out = {"metadata": enriched_meta, "results": results}
@@ -140,27 +205,49 @@ def save_json(results: Dict, path: str, meta: dict) -> None:
 
 
 # ── Table Output ──────────────────────────────────────────────────────────────
-def print_summary_table(results: Dict[str, Dict[str, List[float]]], mode: str, axis_vals: List) -> None:
+def print_summary_table(results: Dict[str, Dict[str, List]], mode: str, axis_vals: List) -> None:
     print(f"\n[SUMMARY TABLE: {mode.upper()} — avg ± stdev over {NUM_SEEDS} seeds]")
-    print("-" * 80)
+    print("-" * 100)
+    
     if mode == "grid_scaling":
         print("Grid Size".ljust(12) + "Runtime (s)".rjust(20))
         for grid in axis_vals:
             key = f"{grid}x{grid}"
             times = list(results.get(key, {}).values())[0]
             print(f"{key.ljust(12)}{np.mean(times):>10.3f} ± {np.std(times):<.3f}")
+            
     elif mode == "landscape_prop":
         grid_key = list(results.keys())[0]
         print("Land Prop".ljust(12) + "Runtime (s)".rjust(20))
         for lp in axis_vals:
             times = results[grid_key].get(f"{lp:.2f}", [])
             print(f"{str(lp).ljust(12)}{np.mean(times):>10.3f} ± {np.std(times):<.3f}")
+            
     elif mode == "cpu_scaling":
-        print("CPU Count".ljust(12) + "Runtime (s)".rjust(20))
+        header = ("CPU Count".ljust(12) + 
+                 "Runtime (s)".rjust(20) + 
+                 "CPU Usage (%)".rjust(20) + 
+                 "Active Cores".rjust(15) + 
+                 "Efficiency (%)".rjust(20))
+        print(header)
+        print("-" * 100)
+        
         for cpu in axis_vals:
-            times = results.get(str(cpu), [])
-            if times:
-                print(f"{str(cpu).ljust(12)}{np.mean(times):>10.3f} ± {np.std(times):<.3f}")
+            cpu_key = str(cpu)
+            if cpu_key in results:
+                runtime = np.mean(results[cpu_key]["runtime"])
+                runtime_std = np.std(results[cpu_key]["runtime"])
+                usage = np.mean(results[cpu_key]["cpu_usage"])
+                usage_std = np.std(results[cpu_key]["cpu_usage"])
+                cores = np.mean(results[cpu_key]["active_cores"])
+                cores_std = np.std(results[cpu_key]["active_cores"])
+                efficiency = (cores / float(cpu)) * 100 if float(cpu) > 0 else 0
+                
+                print(f"{str(cpu).ljust(12)}" + 
+                      f"{runtime:>10.3f} ± {runtime_std:<.3f}" + 
+                      f"{usage:>15.1f} ± {usage_std:<.1f}" + 
+                      f"{cores:>12.1f} ± {cores_std:<.1f}" + 
+                      f"{efficiency:>17.1f}")
             else:
                 print(f"{str(cpu).ljust(12)}{'N/A':>10}")
 
@@ -175,6 +262,45 @@ def cleanup_artifacts() -> None:
             os.remove(ppm_file)
         except Exception:
             pass
+
+
+# ── CPU Scaling Experiment ─────────────────────────────────────────────────────
+def run_cpu_scaling_experiment() -> Dict[str, Dict[str, List]]:
+    print("\n[RUNNING EXPERIMENT 3: CPU SCALING]\n")
+    cpu_results: Dict[str, Dict[str, List]] = {}
+    
+    for cpu in CPU_COUNTS:
+        print(f"\n[CPU EXPERIMENT] Running with {cpu} CPUs\n")
+        cpu_key = str(cpu)
+        cpu_results[cpu_key] = {"runtime": [], "cpu_usage": [], "active_cores": []}
+        
+        for seed in SEEDS:
+            print(f"[INFO] Running CPU scaling test: CPUs={cpu}, seed={seed}")
+            landscape_file = os.path.join(LANDSCAPE_DIR, f"performance_experiment_{DEFAULT_GRID}x{DEFAULT_GRID}.dat")
+            
+            runtime, peak_usage, active_cores = run_simulation(
+                landscape_file,
+                0.90, 
+                seed, 
+                cpu_override=cpu
+            )
+            
+            cpu_results[cpu_key]["runtime"].append(runtime)
+            cpu_results[cpu_key]["cpu_usage"].append(peak_usage)
+            cpu_results[cpu_key]["active_cores"].append(active_cores)
+        
+        # Calculate averages for this CPU count
+        avg_runtime = np.mean(cpu_results[cpu_key]["runtime"])
+        avg_usage = np.mean(cpu_results[cpu_key]["cpu_usage"])
+        avg_cores = np.mean(cpu_results[cpu_key]["active_cores"])
+        
+        print(f"[CPU EXPERIMENT SUMMARY] CPUs={cpu}")
+        print(f"  Average runtime: {avg_runtime:.3f}s ± {np.std(cpu_results[cpu_key]['runtime']):.3f}s")
+        print(f"  Average CPU usage: {avg_usage:.1f}% ± {np.std(cpu_results[cpu_key]['cpu_usage']):.1f}%")
+        print(f"  Average active cores: {avg_cores:.1f} ± {np.std(cpu_results[cpu_key]['active_cores']):.1f}")
+        print(f"  Utilization efficiency: {(avg_cores/cpu)*100:.1f}% of requested cores")
+    
+    return cpu_results
 
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
@@ -200,12 +326,7 @@ if __name__ == "__main__":
     print_summary_table(land_only, "landscape_prop", LAND_PROPS)
 
     print("\n[RUNNING EXPERIMENT 3: CPU SCALING]\n")
-    cpu_results: Dict[str, List[float]] = {}
-    for cpu in CPU_COUNTS:
-        print(f"\n[CPU EXPERIMENT] Running with {cpu} CPUs\n")
-        result = benchmark([DEFAULT_GRID], [0.90], SEEDS, cpu_override=cpu)
-        cpu_results[str(cpu)] = result[f"{DEFAULT_GRID}x{DEFAULT_GRID}"]["0.90"]
-
+    cpu_results = run_cpu_scaling_experiment()
     save_json(
         cpu_results,
         os.path.join(RESULTS_DIR, "cpu_scaling", f"{EXPERIMENT_TAG}_cpu_scaling.json"),
