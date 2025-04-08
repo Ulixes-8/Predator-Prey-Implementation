@@ -40,12 +40,9 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
         fs=np.zeros((hh,wh),float)
         row=1
         for line in f.readlines():
-            # values=[int(i) for i in line.split(" ")]
 
-            #NOTE: DELETE BELOW UNTIL REFACTORING PART
             if line.strip():  # Skip blank lines
                 values = [int(i) for i in line.strip().split()]
-            #NOTE: DELETE ABOVE UNTIL REFACTORING PART
 
             # Read animals into array,padding with halo values.
 
