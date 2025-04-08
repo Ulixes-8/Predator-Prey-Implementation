@@ -2,13 +2,16 @@
 """
 preliminary_benchmark_runtime.py
 
-Benchmarks simulation runtime under three scenarios:
+Benchmarks simulation runtime under four scenarios:
 1. Grid size sweep (default land prop)
 2. Land proportion sweep (default grid size)
-3. Full matrix (grid × land prop, no plots)
+3. CPU scaling sweep (default grid + land prop)
+4. Full matrix (grid × land prop, no plots)
 
 Each test is repeated across multiple seeds to ensure robustness,
 and the results are saved as JSON for later visualization and comparison.
+
+System info and full configuration are also saved for reproducibility.
 
 Author: s2659865
 Date: April 2025
@@ -25,9 +28,9 @@ import inspect
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Dict
+import psutil
 
 # ── Import Simulation Entrypoint ──────────────────────────────────────────────
-# Use the simulation logic from baseline implementation
 from baseline import simCommLineIntf
 
 # ── Infer Experiment Tag Dynamically ─────────────────────────────────────────--
@@ -44,36 +47,30 @@ DEFAULT_LAND_PROP: float = 0.75
 
 NUM_SEEDS: int = 3
 SEEDS: List[int] = list(range(1, NUM_SEEDS + 1))
-CPU_COUNT: int = 32
+CPU_COUNTS: List[int] = [4, 8, 16, 32]
+DEFAULT_CPU_COUNT: int = 32
 
 # ── System Info ───────────────────────────────────────────────────────────────
 def print_system_info() -> None:
     print("\n[SYSTEM INFO]")
     print(f"  OS              : {platform.system()} {platform.release()}")
     print(f"  Python Version  : {platform.python_version()}")
-    print(f"  CPU Count Used  : {CPU_COUNT}")
+    print(f"  Max CPU Count   : {os.cpu_count()}")
+    print(f"  Logical CPUs    : {psutil.cpu_count(logical=True)}")
+    print(f"  Physical CPUs   : {psutil.cpu_count(logical=False)}")
     print("-" * 50)
 
 
 # ── Simulation Wrapper ─────────────────────────────────────────────────────────
-def run_simulation(landscape_file: str, land_prop: float, seed: int) -> float:
-    """
-    Mocks CLI args and times the simulation run.
-
-    Args:
-        landscape_file (str): .dat landscape path.
-        land_prop (float): Proportion of land cells.
-        seed (int): Random seed for reproducibility.
-
-    Returns:
-        float: Runtime in seconds.
-    """
+def run_simulation(landscape_file: str, land_prop: float, seed: int, cpu_override: int = None) -> float:
     sys.argv = [
-        "simulate_predator_prey.py",
+        f"{EXPERIMENT_TAG.lower()}.py",
         "--landscape-file", landscape_file,
         "--landscape-prop", str(land_prop),
         "--landscape-seed", str(seed)
     ]
+
+    os.environ["OMP_NUM_THREADS"] = str(cpu_override if cpu_override else DEFAULT_CPU_COUNT)
 
     start = time.perf_counter()
     simCommLineIntf()
@@ -88,14 +85,9 @@ def run_simulation(landscape_file: str, land_prop: float, seed: int) -> float:
 def benchmark(
     grid_sizes: List[int],
     land_props: List[float],
-    seeds: List[int]
+    seeds: List[int],
+    cpu_override: int = None
 ) -> Dict[str, Dict[str, List[float]]]:
-    """
-    Runs simulation for all (grid, land_prop, seed) combinations.
-
-    Returns:
-        Dict[str, Dict[str, List[float]]]: Nested results[grid][land_prop] = [runtimes...]
-    """
     results: Dict[str, Dict[str, List[float]]] = {}
 
     for grid in grid_sizes:
@@ -116,7 +108,7 @@ def benchmark(
 
             for seed in seeds:
                 print(f"[INFO] Running: {grid_key}, land={lp_key}, seed={seed}")
-                t = run_simulation(landscape_path, lp, seed)
+                t = run_simulation(landscape_path, lp, seed, cpu_override)
                 times.append(t)
 
             print(f"[DEBUG] Completed {grid_key} | land={lp_key} → Mean: {np.mean(times):.3f}s ± {np.std(times):.3f}s\n")
@@ -126,9 +118,20 @@ def benchmark(
 
 
 # ── Save JSON Results ─────────────────────────────────────────────────────────
-def save_json(results: Dict[str, Dict[str, List[float]]], path: str, meta: dict) -> None:
+def save_json(results: Dict, path: str, meta: dict) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    out = {"metadata": meta, "results": results}
+
+    enriched_meta = meta.copy()
+    enriched_meta.update({
+        "seeds": SEEDS,
+        "platform": platform.platform(),
+        "python_version": platform.python_version(),
+        "logical_cpus": psutil.cpu_count(logical=True),
+        "physical_cpus": psutil.cpu_count(logical=False),
+        "omp_num_threads": meta.get("cpu_counts", [DEFAULT_CPU_COUNT])
+    })
+
+    out = {"metadata": enriched_meta, "results": results}
 
     with open(path, "w") as f:
         json.dump(out, f, indent=4)
@@ -152,53 +155,14 @@ def print_summary_table(results: Dict[str, Dict[str, List[float]]], mode: str, a
         for lp in axis_vals:
             times = results[grid_key].get(f"{lp:.2f}", [])
             print(f"{str(lp).ljust(12)}{np.mean(times):>10.3f} ± {np.std(times):<.3f}")
-
-
-# ── Plotting ──────────────────────────────────────────────────────────────────
-def plot_experiment(
-    results: Dict[str, Dict[str, List[float]]],
-    x_axis: List[float],
-    x_label: str,
-    filename: str,
-    mode: str
-) -> None:
-    plt.figure(figsize=(10, 6))
-
-    if mode == "grid_scaling":
-        means, stds = [], []
-        for grid in x_axis:
-            key = f"{grid}x{grid}"
-            times = list(results.get(key, {}).values())[0]
-            means.append(np.mean(times) if times else np.nan)
-            stds.append(np.std(times) if times else np.nan)
-
-        means = np.array(means)
-        stds = np.array(stds)
-        plt.plot(x_axis, means, label=EXPERIMENT_TAG, marker="o")
-        plt.fill_between(x_axis, means - stds, means + stds, alpha=0.2)
-
-    elif mode == "landscape_prop":
-        grid_key = list(results.keys())[0]
-        means, stds = [], []
-        for lp in x_axis:
-            lp_key = f"{lp:.2f}"
-            times = results[grid_key].get(lp_key, [])
-            means.append(np.mean(times) if times else np.nan)
-            stds.append(np.std(times) if times else np.nan)
-
-        means = np.array(means)
-        stds = np.array(stds)
-        plt.plot(x_axis, means, label=grid_key, marker="o")
-        plt.fill_between(x_axis, means - stds, means + stds, alpha=0.2)
-
-    plt.title(f"Runtime vs {x_label} (avg ± stdev over {NUM_SEEDS} seeds)")
-    plt.xlabel(x_label)
-    plt.ylabel("Runtime (s)")
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(filename)
-    print(f"[INFO] Saved: {filename}")
+    elif mode == "cpu_scaling":
+        print("CPU Count".ljust(12) + "Runtime (s)".rjust(20))
+        for cpu in axis_vals:
+            times = results.get(str(cpu), [])
+            if times:
+                print(f"{str(cpu).ljust(12)}{np.mean(times):>10.3f} ± {np.std(times):<.3f}")
+            else:
+                print(f"{str(cpu).ljust(12)}{'N/A':>10}")
 
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
@@ -222,14 +186,7 @@ if __name__ == "__main__":
     save_json(
         grid_only,
         os.path.join(RESULTS_DIR, "grid_scaling", f"{EXPERIMENT_TAG}_grid_scaling.json"),
-        {"experiment": "grid_scaling", "land_prop": DEFAULT_LAND_PROP, "cpu_count": CPU_COUNT, "seeds": SEEDS}
-    )
-    plot_experiment(
-        grid_only,
-        GRID_SIZES,
-        "Grid Size (NxN)",
-        os.path.join(RESULTS_DIR, "grid_scaling", f"{EXPERIMENT_TAG}_runtime_vs_gridsize.png"),
-        mode="grid_scaling"
+        {"experiment": "grid_scaling", "land_prop": DEFAULT_LAND_PROP}
     )
     print_summary_table(grid_only, "grid_scaling", GRID_SIZES)
 
@@ -238,23 +195,30 @@ if __name__ == "__main__":
     save_json(
         land_only,
         os.path.join(RESULTS_DIR, "landscape_prop", f"{EXPERIMENT_TAG}_landscape_prop.json"),
-        {"experiment": "landscape_prop", "grid_size": DEFAULT_GRID, "cpu_count": CPU_COUNT, "seeds": SEEDS}
-    )
-    plot_experiment(
-        land_only,
-        LAND_PROPS,
-        "Land Proportion",
-        os.path.join(RESULTS_DIR, "landscape_prop", f"{EXPERIMENT_TAG}_runtime_vs_landprop.png"),
-        mode="landscape_prop"
+        {"experiment": "landscape_prop", "grid_size": DEFAULT_GRID}
     )
     print_summary_table(land_only, "landscape_prop", LAND_PROPS)
 
-    print("\n[RUNNING EXPERIMENT 3: FULL RUNTIME MATRIX]\n")
+    print("\n[RUNNING EXPERIMENT 3: CPU SCALING]\n")
+    cpu_results: Dict[str, List[float]] = {}
+    for cpu in CPU_COUNTS:
+        print(f"\n[CPU EXPERIMENT] Running with {cpu} CPUs\n")
+        result = benchmark([DEFAULT_GRID], [0.90], SEEDS, cpu_override=cpu)
+        cpu_results[str(cpu)] = result[f"{DEFAULT_GRID}x{DEFAULT_GRID}"]["0.90"]
+
+    save_json(
+        cpu_results,
+        os.path.join(RESULTS_DIR, "cpu_scaling", f"{EXPERIMENT_TAG}_cpu_scaling.json"),
+        {"experiment": "cpu_scaling", "grid_size": DEFAULT_GRID, "land_prop": 0.90, "cpu_counts": CPU_COUNTS}
+    )
+    print_summary_table(cpu_results, "cpu_scaling", CPU_COUNTS)
+
+    print("\n[RUNNING EXPERIMENT 4: FULL RUNTIME MATRIX]\n")
     full_matrix = benchmark(GRID_SIZES, LAND_PROPS, SEEDS)
     save_json(
         full_matrix,
         os.path.join(RESULTS_DIR, "full_matrix", f"{EXPERIMENT_TAG}_runtime_matrix.json"),
-        {"experiment": "grid_x_landprop_matrix", "cpu_count": CPU_COUNT, "seeds": SEEDS}
+        {"experiment": "grid_x_landprop_matrix"}
     )
     print("\n[SUMMARY] Full Runtime Matrix (avg ± stdev):\n")
     for grid in GRID_SIZES:
