@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-preliminary_benchmark_runtime.py
+performance_experiment.py
 
 Benchmarks simulation runtime under four scenarios:
 1. Grid size sweep (default land prop)
