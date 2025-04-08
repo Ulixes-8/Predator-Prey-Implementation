@@ -62,10 +62,10 @@ def print_system_info() -> None:
     print("-" * 50)
 
 
-# ── Simulation Wrapper with CPU Monitoring ─────────────────────────────────────
+# ── Simulation Wrapper with CPU Monitoring and Limiting ─────────────────────────
 def run_simulation(landscape_file: str, land_prop: float, seed: int, cpu_override: int = None) -> Tuple[float, float, int]:
     """
-    Run simulation with the given parameters and monitor CPU usage.
+    Run simulation with the given parameters, monitor CPU usage, and enforce CPU limits.
     
     Args:
         landscape_file: Path to landscape file
@@ -84,17 +84,49 @@ def run_simulation(landscape_file: str, land_prop: float, seed: int, cpu_overrid
         "--landscape-seed", str(seed)
     ]
 
+    # Set multiple environment variables to control CPU usage across different libraries and frameworks
     os.environ["OMP_NUM_THREADS"] = str(requested_cpu_count)
+    os.environ["MKL_NUM_THREADS"] = str(requested_cpu_count)  # Intel MKL
+    os.environ["NUMEXPR_NUM_THREADS"] = str(requested_cpu_count)  # NumExpr
+    os.environ["OPENBLAS_NUM_THREADS"] = str(requested_cpu_count)  # OpenBLAS
+    os.environ["VECLIB_MAXIMUM_THREADS"] = str(requested_cpu_count)  # Accelerate
+    os.environ["NUMBA_NUM_THREADS"] = str(requested_cpu_count)  # Numba
+    os.environ["TBB_NUM_THREADS"] = str(requested_cpu_count)  # Intel TBB
+    os.environ["PYTHONEXECUTABLE"] = sys.executable  # Ensure subprocesses inherit env vars
+    
     print(f"[CPU INFO] Requested CPU count: {requested_cpu_count}")
+    print(f"[CPU INFO] Set thread limits for OMP, MKL, NumExpr, OpenBLAS, VecLib, Numba, and TBB")
+    
+    # Use process affinity to hard-limit available CPUs (only works on Linux and Windows)
+    import platform
+    try:
+        if platform.system() in ["Linux", "Windows"]:
+            p = psutil.Process()
+            total_cpus = psutil.cpu_count(logical=True)
+            
+            if total_cpus <= requested_cpu_count:
+                # If requesting all or more CPUs than available, use all CPUs
+                cpu_list = list(range(total_cpus))
+            else:
+                # Otherwise, limit to first N CPUs
+                cpu_list = list(range(requested_cpu_count))
+            
+            p.cpu_affinity(cpu_list)
+            print(f"[CPU LIMIT] Process affinity set to CPUs: {p.cpu_affinity()}")
+        else:
+            print(f"[CPU LIMIT] Process affinity not supported on {platform.system()}")
+    except Exception as e:
+        print(f"[WARNING] Unable to set CPU affinity: {e}")
     
     # Use shared variables to collect monitoring results
     cpu_monitor_results = {
         "max_usage": 0.0,
         "max_active_cores": 0,
-        "monitoring_active": True
+        "monitoring_active": True,
+        "exceeded_limit": False
     }
     
-    # Define CPU monitoring function
+    # Define CPU monitoring function with limit checking
     def monitor_cpu_usage():
         while cpu_monitor_results["monitoring_active"]:
             # Get per-CPU utilization percentages
@@ -104,13 +136,19 @@ def run_simulation(landscape_file: str, land_prop: float, seed: int, cpu_overrid
             active_cores = sum(1 for cpu_percent in per_cpu_percent if cpu_percent > 50)
             cpu_monitor_results["max_active_cores"] = max(cpu_monitor_results["max_active_cores"], active_cores)
             
+            # Check if exceeding requested CPU count (with a small tolerance)
+            if active_cores > requested_cpu_count + 1:  # Allow 1 extra for monitoring overhead
+                cpu_monitor_results["exceeded_limit"] = True
+                print(f"[CPU WARNING] Using {active_cores} cores, exceeds requested {requested_cpu_count}")
+            
             # Get overall CPU usage
             usage = psutil.cpu_percent(interval=0)
             cpu_monitor_results["max_usage"] = max(cpu_monitor_results["max_usage"], usage)
             
             # Print real-time feedback periodically
             if active_cores > 0:
-                print(f"[CPU MONITOR] Current active cores: {active_cores}/{psutil.cpu_count(logical=True)}, Usage: {usage:.1f}%", 
+                status = "✓" if active_cores <= requested_cpu_count else "!"
+                print(f"[CPU MONITOR] {status} Active cores: {active_cores}/{psutil.cpu_count(logical=True)}, Usage: {usage:.1f}%", 
                       end="\r", flush=True)
             
             time.sleep(0.5)
@@ -134,6 +172,11 @@ def run_simulation(landscape_file: str, land_prop: float, seed: int, cpu_overrid
           f"Max active cores: {cpu_monitor_results['max_active_cores']}/{psutil.cpu_count(logical=True)}")
     print(f"[CPU VERIFICATION] Requested: {requested_cpu_count}, "
           f"Actual max cores active: {cpu_monitor_results['max_active_cores']}")
+    
+    # Print warnings if CPU limits were exceeded
+    if cpu_monitor_results["exceeded_limit"]:
+        print(f"[CPU WARNING] The simulation exceeded the requested CPU limit of {requested_cpu_count}!")
+        print(f"[CPU WARNING] This may indicate that OpenMP/thread limiting is not working properly.")
     
     # Calculate core utilization efficiency
     if requested_cpu_count > 0:
