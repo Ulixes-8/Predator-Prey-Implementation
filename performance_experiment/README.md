@@ -2,7 +2,7 @@
 
 ## Overview
 
-This framework provides a comprehensive suite for benchmarking and analyzing the performance of predator-prey simulation implementations. The code has been structured to follow software engineering best practices including modularity, reusability, proper documentation, and type annotations.
+This framework provides a comprehensive suite for benchmarking and analyzing the performance of predator-prey simulation refactorings/implementations. The code has been structured to follow software engineering best practices including modularity, reusability, proper documentation, and type annotations.
 
 ## Structure
 
@@ -21,7 +21,8 @@ performance_experiment/
 ├── baseline.py                    # Original simulation implementation
 ├── refactor_1.py                  # First refactored implementation
 ├── refactor_2.py                  # Second refactored implementation
-├── refactor_3.py                  # Third refactored implementation
+├── . . . 
+├── refactor_n.py                  # N'th refactored implementation
 └── performance_results/           # Generated results directory
     ├── grid_scaling/              # Grid scaling experiment results
     ├── landscape_prop/            # Landscape proportion experiment results
