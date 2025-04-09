@@ -24,7 +24,9 @@ from typing import Dict, List, Tuple, Any, Optional
 from performance_core import (
     LANDSCAPE_DIR,
     cleanup_artifacts,
-    DEFAULT_CPU_COUNT
+    DEFAULT_CPU_COUNT,
+    get_sim_command_line_interface,
+    get_implementation
 )
 
 # ── Simulation Wrapper with CPU Monitoring ────────────────────────────────────
@@ -46,12 +48,12 @@ def run_simulation(
     Returns:
         Tuple[float, float, int]: (runtime in seconds, peak CPU utilization percentage, max active cores)
     """
-    # Must be imported here to avoid circular import issues
-    from baseline import simCommLineIntf
+    # Get the simulation function from the current implementation
+    simCommLineIntf = get_sim_command_line_interface()
     
     requested_cpu_count = cpu_override if cpu_override is not None else DEFAULT_CPU_COUNT
     sys.argv = [
-        "baseline.py",
+        f"{get_implementation()}.py",
         "--landscape-file", landscape_file,
         "--landscape-prop", str(land_prop),
         "--landscape-seed", str(seed)

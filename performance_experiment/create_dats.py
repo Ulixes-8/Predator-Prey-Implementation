@@ -77,7 +77,7 @@ def generate_all_landscapes(grid_sizes: List[int], default_value: int = 21) -> N
 # ─── Entrypoint ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     # Define the grid sizes to generate
-    GRID_SIZES = [10, 20, 40, 80, 160, 320]
+    GRID_SIZES = [10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5120]
 
     # Launch the file generation process
     generate_all_landscapes(grid_sizes=GRID_SIZES)

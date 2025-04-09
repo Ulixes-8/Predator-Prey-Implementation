@@ -18,7 +18,8 @@ import platform
 import psutil
 import time
 import inspect
-from typing import Dict, Any
+import importlib
+from typing import Dict, Any, Optional
 
 # ── Directories and Paths ──────────────────────────────────────────────────────
 # Base directories
@@ -26,6 +27,83 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 LANDSCAPE_DIR = os.path.join(PROJECT_ROOT, "animals")
 RESULTS_DIR = "performance_results"
+
+# ── Implementation Selection ────────────────────────────────────────────────────
+# Default implementation to use
+DEFAULT_IMPLEMENTATION = "baseline"
+# Currently selected implementation (set by set_implementation)
+CURRENT_IMPLEMENTATION = None
+# Cached simulation function
+SIM_COMMAND_LINE_INTERFACE = None
+
+def set_implementation(implementation: str) -> None:
+    """
+    Set the implementation to use for experiments.
+    
+    Args:
+        implementation: Name of the implementation module (e.g., 'baseline', 'refactor_1')
+    """
+    global CURRENT_IMPLEMENTATION, SIM_COMMAND_LINE_INTERFACE
+    
+    if implementation not in get_available_implementations():
+        raise ValueError(f"Implementation '{implementation}' not found. Available implementations: {get_available_implementations()}")
+    
+    CURRENT_IMPLEMENTATION = implementation
+    
+    # Dynamically import the specified implementation
+    try:
+        implementation_module = importlib.import_module(implementation)
+        SIM_COMMAND_LINE_INTERFACE = implementation_module.simCommLineIntf
+    except (ImportError, AttributeError) as e:
+        print(f"[ERROR] Failed to import implementation '{implementation}': {e}")
+        sys.exit(1)
+    
+    print(f"[INFO] Using implementation: {implementation.upper()}")
+
+def get_implementation() -> str:
+    """
+    Get the currently selected implementation.
+    
+    Returns:
+        str: Name of the current implementation
+    """
+    global CURRENT_IMPLEMENTATION
+    if CURRENT_IMPLEMENTATION is None:
+        set_implementation(DEFAULT_IMPLEMENTATION)
+    return CURRENT_IMPLEMENTATION
+
+def get_sim_command_line_interface():
+    """
+    Get the simulation command line interface function from the current implementation.
+    
+    Returns:
+        function: The simCommLineIntf function from the current implementation
+    """
+    global SIM_COMMAND_LINE_INTERFACE
+    if SIM_COMMAND_LINE_INTERFACE is None:
+        get_implementation()  # This will set SIM_COMMAND_LINE_INTERFACE
+    return SIM_COMMAND_LINE_INTERFACE
+
+def get_available_implementations() -> list:
+    """
+    Get a list of available implementations in the current directory.
+    
+    Returns:
+        list: List of implementation module names
+    """
+    implementations = []
+    
+    # Check for baseline
+    if os.path.exists(os.path.join(SCRIPT_DIR, "baseline.py")):
+        implementations.append("baseline")
+    
+    # Check for refactored implementations
+    for i in range(1, 10):  # Assuming we won't have more than 9 refactored versions
+        refactor_file = f"refactor_{i}.py"
+        if os.path.exists(os.path.join(SCRIPT_DIR, refactor_file)):
+            implementations.append(f"refactor_{i}")
+    
+    return implementations
 
 # Create results directory structure if it doesn't exist
 def ensure_results_dirs() -> None:
@@ -53,22 +131,15 @@ DEFAULT_CPU_COUNT = 32
 NUM_SEEDS = 3
 SEEDS = list(range(1, NUM_SEEDS + 1))
 
-# ── Simulation Module Identification ─────────────────────────────────────────────
+# ── Experiment Tag Generation ────────────────────────────────────────────────────
 def get_experiment_tag() -> str:
     """
-    Determine which simulation implementation is being used.
-    
-    This function dynamically determines the experiment tag based on the 
-    imported simulation module (baseline, refactor_1, etc.).
+    Get a tag for the current experiment based on the implementation being used.
     
     Returns:
-        str: The name of the current implementation (e.g., 'BASELINE', 'REFACTOR_1')
+        str: The uppercase name of the current implementation (e.g., 'BASELINE', 'REFACTOR_1')
     """
-    # Must be imported here to avoid circular import
-    from baseline import simCommLineIntf
-    
-    # Extract the module name from the function's module
-    return os.path.splitext(os.path.basename(inspect.getfile(simCommLineIntf)))[0].upper()
+    return get_implementation().upper()
 
 # ── System Information ───────────────────────────────────────────────────────────
 def get_system_info() -> Dict[str, Any]:
@@ -86,7 +157,8 @@ def get_system_info() -> Dict[str, Any]:
         "logical_cpus": psutil.cpu_count(logical=True),
         "physical_cpus": psutil.cpu_count(logical=False),
         "total_memory_gb": round(psutil.virtual_memory().total / (1024**3), 2),
-        "platform_full": platform.platform()
+        "platform_full": platform.platform(),
+        "implementation": get_implementation()
     }
 
 def print_system_info() -> None:
@@ -102,6 +174,7 @@ def print_system_info() -> None:
     print(f"  Logical CPUs    : {info['logical_cpus']}")
     print(f"  Physical CPUs   : {info['physical_cpus']}")
     print(f"  Memory (GB)     : {info['total_memory_gb']}")
+    print(f"  Implementation  : {info['implementation'].upper()}")
     print("-" * 50)
 
 # ── Cleanup Utilities ───────────────────────────────────────────────────────────
