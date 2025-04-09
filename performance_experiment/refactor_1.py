@@ -46,9 +46,9 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
 
             # Read animals into array,padding with halo values.
 
-                ms[row]=[0]+[i//10 for i in values]+[0]
-                fs[row]=[0]+[i%10 for i in values]+[0]
-                row += 1
+            ms[row]=[0]+[i//10 for i in values]+[0]
+            fs[row]=[0]+[i%10 for i in values]+[0]
+            row += 1
 
     lscape=np.zeros((hh,wh),int)
     random.seed(lseed)
@@ -63,14 +63,12 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
     # Make landscape smoother by making any land cells mostly surrounded by water into water cells and vice versa
     # This includes the halo, so cells near the edge are more likely to become water, which is odd on small grids
     for sm in range(lsm):
-        lscape_copy = lscape.copy()
         for i in range(1,h+1):
             for j in range(1,w+1):
                 if lscape[i,j] + lscape[i - 1,j] + lscape[i + 1,j] + lscape[i,j - 1] + lscape[i,j + 1] < 2:
-                    lscape_copy[i,j] = 0
+                    lscape[i,j] = 0
                 if lscape[i,j] + lscape[i - 1,j] + lscape[i + 1,j] + lscape[i,j - 1] + lscape[i,j + 1] > 2:
-                    lscape_copy[i,j] = 1
-        lscape = lscape_copy
+                    lscape[i,j] = 1
 
     for i in range(hh):
         for j in range(wh):
@@ -102,19 +100,11 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
     else:
         am=0
         af=0
-    print("Averages. Timestep: {} Time (s): {:.1f} Mice: {:.17f} Foxes: {:.17f}".format(0,0,am,af))
+    # print("Averages. Timestep: {} Time (s): {:.1f} Mice: {:.17f} Foxes: {:.17f}".format(0,0,am,af))
     with open("averages.csv","w") as f:
         hdr="Timestep,Time,Mice,Foxes\n"
         f.write(hdr)
     tot_ts = int(d / dt)
-    
-    # Performance improvement: Pre-calculate land cells
-    land_cells = []
-    for x in range(1, h+1):
-        for y in range(1, w+1):
-            if lscape[x, y] == 1:
-                land_cells.append((x, y))
-    
     for i in range(0,tot_ts):
         if not i%t:
             mm=np.max(ms)
@@ -125,7 +115,7 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
             else:
                 am=0
                 af=0
-            print("Averages. Timestep: {} Time (s): {:.1f} Mice: {:.17f} Foxes: {:.17f}".format(i,i*dt,am,af))
+            # print("Averages. Timestep: {} Time (s): {:.1f} Mice: {:.17f} Foxes: {:.17f}".format(i,i*dt,am,af))
             with open("averages.csv","a") as f:
                 f.write("{},{:.1f},{:.17f},{:.17f}\n".format(i,i*dt,am,af))
             for x in range(1,h+1):
@@ -150,26 +140,15 @@ def sim(r,a,k,b,m,l,dt,t,d,lfile,lseed,lp,lsm):
                             f.write("{} {} {}\n".format(fcols[x,y],mcols[x,y],0))
                         else:
                             f.write("{} {} {}\n".format(0,200,255))
-        
-        # Performance improvement: Only process land cells instead of entire grid
-        for x, y in land_cells:
-            # Performance improvement: Cache common terms to avoid repeated calculations
-            ms_xy = ms[x,y]
-            fs_xy = fs[x,y]
-            ms_neighbors = ms[x-1,y] + ms[x+1,y] + ms[x,y-1] + ms[x,y+1]
-            fs_neighbors = fs[x-1,y] + fs[x+1,y] + fs[x,y-1] + fs[x,y+1]
-            neighbor_count = neibs[x,y]
-            
-            # Update mice population 
-            ms_nu[x,y]=ms_xy+dt*((r*ms_xy)-(a*ms_xy*fs_xy)+k*((ms_neighbors)-(neighbor_count*ms_xy)))
-            if ms_nu[x,y]<0:
-                ms_nu[x,y]=0
-                
-            # Update foxes population
-            fs_nu[x,y]=fs_xy+dt*((b*ms_xy*fs_xy)-(m*fs_xy)+l*((fs_neighbors)-(neighbor_count*fs_xy)))
-            if fs_nu[x,y]<0:
-                fs_nu[x,y]=0
-                
+        for x in range(1,h+1):
+            for y in range(1,w+1):
+                if lscape[x,y]:
+                    ms_nu[x,y]=ms[x,y]+dt*((r*ms[x,y])-(a*ms[x,y]*fs[x,y])+k*((ms[x-1,y]+ms[x+1,y]+ms[x,y-1]+ms[x,y+1])-(neibs[x,y]*ms[x,y])))
+                    if ms_nu[x,y]<0:
+                        ms_nu[x,y]=0
+                    fs_nu[x,y]=fs[x,y]+dt*((b*ms[x,y]*fs[x,y])-(m*fs[x,y])+l*((fs[x-1,y]+fs[x+1,y]+fs[x,y-1]+fs[x,y+1])-(neibs[x,y]*fs[x,y])))
+                    if fs_nu[x,y]<0:
+                        fs_nu[x,y]=0
         # Swap arrays for next iteration.
         tmp=ms
         ms=ms_nu
