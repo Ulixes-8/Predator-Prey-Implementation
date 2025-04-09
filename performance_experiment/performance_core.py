@@ -115,15 +115,15 @@ def ensure_results_dirs() -> None:
 
 # ── Experiment Configuration ────────────────────────────────────────────────────
 # Grid sizes for experiments
-GRID_SIZES = [10, 20, 40]  # For most experiments
-LARGE_GRID_SIZES = [10, 20, 40, 80, 160]  # For specific grid scaling tests
+GRID_SIZES = [10, 20, 40, 80, 160]  # For most experiments
+# GRID_SIZES = [320, 640, 1280, 2560]  # For specific grid scaling tests
 
 # Land proportion values
 LAND_PROPS = [0.1, 0.2, 0.4, 0.8]
 DEFAULT_LAND_PROP = 0.75
 
 # CPU configurations
-DEFAULT_GRID = 40
+DEFAULT_GRID = 160
 CPU_COUNTS = [4, 8, 16, 32]
 DEFAULT_CPU_COUNT = 32
 
