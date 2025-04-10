@@ -20,7 +20,7 @@ from typing import List
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import from utility modules
-from test_utilities import PERF_DIR, captured_output, temporary_directory
+from test_utilities import PERF_DIR, PREDATOR_PREY_DIR, captured_output, temporary_directory
 from test_fixtures import available_refactorings
 
 # ─── Interface Tests ──────────────────────────────────────────────────────────
@@ -47,6 +47,10 @@ class TestRefactoringCore:
         
         # Check each refactored implementation
         for refactor_name in available_refactorings:
+            # Skip the main implementation since we already checked it
+            if refactor_name == "simulate_predator_prey":
+                continue
+                
             # Import the module
             spec = importlib.util.spec_from_file_location(
                 refactor_name, 
@@ -70,7 +74,14 @@ class TestRefactoringCore:
             available_refactorings: List of available refactored implementation modules
         """
         for refactor_name in available_refactorings:
-            # Import the module
+            # Handle the main implementation differently
+            if refactor_name == "simulate_predator_prey":
+                # Import the main module
+                from predator_prey.simulate_predator_prey import simCommLineIntf
+                assert callable(simCommLineIntf), "simulate_predator_prey has non-callable simCommLineIntf"
+                continue
+                
+            # Import the refactored module
             spec = importlib.util.spec_from_file_location(
                 refactor_name, 
                 os.path.join(PERF_DIR, f"{refactor_name}.py")
@@ -87,7 +98,7 @@ class TestRefactoringCore:
 
 
 # ─── Basic Implementation Tests ────────────────────────────────────────────────
-@pytest.mark.parametrize("refactor_name", ["refactor_1", "refactor_2", "refactor_3"])
+@pytest.mark.parametrize("refactor_name", ["simulate_predator_prey", "refactor_1", "refactor_2", "refactor_3"])
 class TestRefactoringImplementation:
     """
     Tests for individual refactored implementations.
@@ -103,6 +114,10 @@ class TestRefactoringImplementation:
         Args:
             refactor_name: Name of the refactored implementation module
         """
+        if refactor_name == "simulate_predator_prey":
+            assert os.path.exists(os.path.join(PREDATOR_PREY_DIR, f"{refactor_name}.py")), "Main implementation not found"
+            return
+            
         refactor_path = os.path.join(PERF_DIR, f"{refactor_name}.py")
         if not os.path.exists(refactor_path):
             pytest.skip(f"Refactored implementation {refactor_name} not found")

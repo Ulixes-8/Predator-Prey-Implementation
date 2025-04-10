@@ -23,12 +23,13 @@ def available_refactorings() -> List[str]:
     Return a list of available refactored implementation module names.
     
     This fixture looks for refactor_1.py, refactor_2.py, etc. files
-    in the performance_experiment directory.
+    in the performance_experiment directory and also includes the main implementation.
     
     Returns:
         List of refactored implementation module names without .py extension
     """
-    refactorings = []
+    refactorings = ["simulate_predator_prey"]  # Always include the main implementation
+    
     for i in range(1, 4):  # Check refactor_1, refactor_2, refactor_3
         refactor_path = os.path.join(PERF_DIR, f"refactor_{i}.py")
         if os.path.exists(refactor_path):

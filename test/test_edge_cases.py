@@ -30,7 +30,7 @@ from test_utilities import (
 )
 
 # ─── Random Seed Tests ─────────────────────────────────────────────────────────
-@pytest.mark.parametrize("refactor_name", ["refactor_1", "refactor_2", "refactor_3"])
+@pytest.mark.parametrize("refactor_name", ["simulate_predator_prey", "refactor_1", "refactor_2", "refactor_3"])
 class TestEdgeCases:
     """
     Tests for edge cases and stress testing.
@@ -48,10 +48,11 @@ class TestEdgeCases:
             refactor_name: Name of the refactored implementation module
             seed: Random seed value to test
         """
-        refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                     "performance_experiment", f"{refactor_name}.py")
-        if not os.path.exists(refactor_path):
-            pytest.skip(f"Refactored implementation {refactor_name} not found")
+        if refactor_name.startswith("refactor_"):
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                        "performance_experiment", f"{refactor_name}.py")
+            if not os.path.exists(refactor_path):
+                pytest.skip(f"Refactored implementation {refactor_name} not found")
             
         try:
             refactored_sim = load_refactored_implementation(refactor_name)
@@ -80,7 +81,7 @@ extreme_parameters = [
     ("sparse_landscape", (0.1, 0.05, 0.2, 0.03, 0.09, 0.2, 0.5, 10, 30, "performance_experiment_20x20.dat", 1, 0.1, 2))
 ]
 
-@pytest.mark.parametrize("refactor_name", ["refactor_1", "refactor_2", "refactor_3"])
+@pytest.mark.parametrize("refactor_name", ["simulate_predator_prey", "refactor_1", "refactor_2", "refactor_3"])
 @pytest.mark.parametrize("test_case,args", extreme_parameters)
 class TestExtremeParameters:
     """
@@ -99,10 +100,11 @@ class TestExtremeParameters:
             test_case: Name of the test case for identification
             args: Tuple of simulation parameters
         """
-        refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                     "performance_experiment", f"{refactor_name}.py")
-        if not os.path.exists(refactor_path):
-            pytest.skip(f"Refactored implementation {refactor_name} not found")
+        if refactor_name.startswith("refactor_"):
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                        "performance_experiment", f"{refactor_name}.py")
+            if not os.path.exists(refactor_path):
+                pytest.skip(f"Refactored implementation {refactor_name} not found")
             
         try:
             refactored_sim = load_refactored_implementation(refactor_name)
@@ -123,7 +125,7 @@ class TestExtremeParameters:
 
 
 # ─── Determinism Tests ─────────────────────────────────────────────────────────
-@pytest.mark.parametrize("refactor_name", ["refactor_1", "refactor_2", "refactor_3"])
+@pytest.mark.parametrize("refactor_name", ["simulate_predator_prey", "refactor_1", "refactor_2", "refactor_3"])
 class TestDeterminism:
     """
     Tests for simulation determinism.
@@ -139,10 +141,11 @@ class TestDeterminism:
         Args:
             refactor_name: Name of the refactored implementation module
         """
-        refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                     "performance_experiment", f"{refactor_name}.py")
-        if not os.path.exists(refactor_path):
-            pytest.skip(f"Refactored implementation {refactor_name} not found")
+        if refactor_name.startswith("refactor_"):
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                        "performance_experiment", f"{refactor_name}.py")
+            if not os.path.exists(refactor_path):
+                pytest.skip(f"Refactored implementation {refactor_name} not found")
             
         try:
             refactored_sim = load_refactored_implementation(refactor_name)

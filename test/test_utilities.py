@@ -26,10 +26,14 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 ANIMALS_DIR = os.path.join(PROJECT_ROOT, "animals")
 PERF_DIR = os.path.join(PROJECT_ROOT, "performance_experiment")
+PREDATOR_PREY_DIR = os.path.join(PROJECT_ROOT, "predator_prey")
 sys.path.append(PROJECT_ROOT)
 
 # Import the original simulation
 from performance_experiment.baseline import sim as original_sim
+
+# Import the main implementation
+from predator_prey.simulate_predator_prey import sim as main_sim
 
 
 # ─── Output Capture Utilities ───────────────────────────────────────────────────
@@ -82,6 +86,10 @@ def load_refactored_implementation(refactor_name: str) -> Callable:
     Raises:
         ImportError: If the module cannot be found or doesn't have a sim function
     """
+    # Handle special case for main implementation
+    if refactor_name == "simulate_predator_prey":
+        return main_sim
+        
     refactor_path = os.path.join(PERF_DIR, f"{refactor_name}.py")
     
     if not os.path.exists(refactor_path):

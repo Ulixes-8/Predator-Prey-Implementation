@@ -23,7 +23,7 @@ from test_utilities import (
 )
 
 # ─── Landscape Parameter Tests ─────────────────────────────────────────────────
-@pytest.mark.parametrize("refactor_name", ["refactor_1", "refactor_2", "refactor_3"])
+@pytest.mark.parametrize("refactor_name", ["simulate_predator_prey", "refactor_1", "refactor_2", "refactor_3"])
 class TestLandscapeVariations:
     """
     Tests for different landscape parameters.
@@ -41,10 +41,11 @@ class TestLandscapeVariations:
             refactor_name: Name of the refactored implementation module
             land_prop: Land proportion value to test
         """
-        refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                    "performance_experiment", f"{refactor_name}.py")
-        if not os.path.exists(refactor_path):
-            pytest.skip(f"Refactored implementation {refactor_name} not found")
+        if refactor_name.startswith("refactor_"):
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                        "performance_experiment", f"{refactor_name}.py")
+            if not os.path.exists(refactor_path):
+                pytest.skip(f"Refactored implementation {refactor_name} not found")
             
         try:
             refactored_sim = load_refactored_implementation(refactor_name)
@@ -72,10 +73,11 @@ class TestLandscapeVariations:
             refactor_name: Name of the refactored implementation module
             smoothing: Number of landscape smoothing passes to test
         """
-        refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                    "performance_experiment", f"{refactor_name}.py")
-        if not os.path.exists(refactor_path):
-            pytest.skip(f"Refactored implementation {refactor_name} not found")
+        if refactor_name.startswith("refactor_"):
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                        "performance_experiment", f"{refactor_name}.py")
+            if not os.path.exists(refactor_path):
+                pytest.skip(f"Refactored implementation {refactor_name} not found")
             
         try:
             refactored_sim = load_refactored_implementation(refactor_name)

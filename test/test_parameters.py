@@ -45,7 +45,7 @@ all_parameter_variations = [
     ("logo_pattern", 0.1, 0.05, 0.2, 0.03, 0.09, 0.2, 0.5, 10, 50, "40x20ps.dat", 1, 0.75, 2),
 ]
 
-@pytest.mark.parametrize("refactor_name", ["refactor_1", "refactor_2", "refactor_3"])
+@pytest.mark.parametrize("refactor_name", ["simulate_predator_prey", "refactor_1", "refactor_2", "refactor_3"])
 @pytest.mark.parametrize("test_case", all_parameter_variations)
 class TestParameterVariations:
     """
@@ -63,10 +63,11 @@ class TestParameterVariations:
             refactor_name: Name of the refactored implementation module
             test_case: Tuple containing (test_name, param1, param2, ...)
         """
-        refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                    "performance_experiment", f"{refactor_name}.py")
-        if not os.path.exists(refactor_path):
-            pytest.skip(f"Refactored implementation {refactor_name} not found")
+        if refactor_name.startswith("refactor_"):
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                        "performance_experiment", f"{refactor_name}.py")
+            if not os.path.exists(refactor_path):
+                pytest.skip(f"Refactored implementation {refactor_name} not found")
         
         name = test_case[0]
         params = list(test_case[1:])
