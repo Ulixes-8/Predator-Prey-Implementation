@@ -28,8 +28,6 @@ predator_prey/
 │   └── utils/                    # Test utilities and fixtures
 ├── animals/                      # Input data files for animals
 │   └── *.dat                     # Animal density grid files
-├── landscapes/                   # Additional landscape files
-│   └── *.dat                     # Landscape configuration files
 └── requirements.txt              # Python dependencies
 ```
 
