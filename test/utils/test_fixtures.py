@@ -15,7 +15,7 @@ import pytest
 from typing import List
 
 # Import path constants from utilities
-from test_utilities import ANIMALS_DIR, PERF_DIR
+from test.utils.test_utilities import ANIMALS_DIR, IMPL_DIR
 
 @pytest.fixture
 def available_refactorings() -> List[str]:
@@ -23,7 +23,7 @@ def available_refactorings() -> List[str]:
     Return a list of available refactored implementation module names.
     
     This fixture looks for refactor_1.py, refactor_2.py, etc. files
-    in the performance_experiment directory and also includes the main implementation.
+    in the performance_experiment/implementations directory and also includes the main implementation.
     
     Returns:
         List of refactored implementation module names without .py extension
@@ -31,7 +31,7 @@ def available_refactorings() -> List[str]:
     refactorings = ["simulate_predator_prey"]  # Always include the main implementation
     
     for i in range(1, 4):  # Check refactor_1, refactor_2, refactor_3
-        refactor_path = os.path.join(PERF_DIR, f"refactor_{i}.py")
+        refactor_path = os.path.join(IMPL_DIR, f"refactor_{i}.py")
         if os.path.exists(refactor_path):
             refactorings.append(f"refactor_{i}")
     return refactorings

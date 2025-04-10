@@ -15,15 +15,15 @@ import sys
 from typing import Dict, List, Any
 
 # Import from other modules
-from performance_core import (
+from performance_experiment.src.performance_core import (
     GRID_SIZES, 
     DEFAULT_LAND_PROP, 
     SEEDS,
     RESULTS_DIR,
     get_experiment_tag
 )
-from performance_runner import benchmark
-from performance_reporting import save_json, print_summary_table
+from performance_experiment.src.performance_runner import benchmark
+from performance_experiment.src.performance_reporting import save_json, print_summary_table
 
 # ── Grid Scaling Experiment ──────────────────────────────────────────────────
 def run_grid_scaling_experiment() -> Dict[str, Dict[str, List[float]]]:

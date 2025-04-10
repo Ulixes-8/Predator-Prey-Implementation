@@ -14,11 +14,11 @@ import sys
 import pytest
 from typing import Tuple, Any
 
-# Add the current directory to the path so imports work correctly
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add the project root to the path so imports work correctly
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Import from utility modules
-from test_utilities import (
+from test.utils.test_utilities import (
     ANIMALS_DIR, 
     load_refactored_implementation,
     run_output_comparison,
@@ -64,10 +64,10 @@ class TestParameterVariations:
             test_case: Tuple containing (test_name, param1, param2, ...)
         """
         if refactor_name.startswith("refactor_"):
-            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                        "performance_experiment", f"{refactor_name}.py")
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+                                        "performance_experiment", "implementations", f"{refactor_name}.py")
             if not os.path.exists(refactor_path):
-                pytest.skip(f"Refactored implementation {refactor_name} not found")
+                pytest.skip(f"Refactored implementation {refactor_name} not found at {refactor_path}")
         
         name = test_case[0]
         params = list(test_case[1:])

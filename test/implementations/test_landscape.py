@@ -11,11 +11,15 @@ Date: April 2025
 """
 
 import os
+import sys
 import pytest
 from typing import Tuple
 
+# Add the project root to the path so imports work correctly
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 # Import from utility modules
-from test_utilities import (
+from test.utils.test_utilities import (
     ANIMALS_DIR, 
     load_refactored_implementation,
     run_output_comparison,
@@ -42,10 +46,10 @@ class TestLandscapeVariations:
             land_prop: Land proportion value to test
         """
         if refactor_name.startswith("refactor_"):
-            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                        "performance_experiment", f"{refactor_name}.py")
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+                                        "performance_experiment", "implementations", f"{refactor_name}.py")
             if not os.path.exists(refactor_path):
-                pytest.skip(f"Refactored implementation {refactor_name} not found")
+                pytest.skip(f"Refactored implementation {refactor_name} not found at {refactor_path}")
             
         try:
             refactored_sim = load_refactored_implementation(refactor_name)
@@ -74,10 +78,10 @@ class TestLandscapeVariations:
             smoothing: Number of landscape smoothing passes to test
         """
         if refactor_name.startswith("refactor_"):
-            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                        "performance_experiment", f"{refactor_name}.py")
+            refactor_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+                                        "performance_experiment", "implementations", f"{refactor_name}.py")
             if not os.path.exists(refactor_path):
-                pytest.skip(f"Refactored implementation {refactor_name} not found")
+                pytest.skip(f"Refactored implementation {refactor_name} not found at {refactor_path}")
             
         try:
             refactored_sim = load_refactored_implementation(refactor_name)

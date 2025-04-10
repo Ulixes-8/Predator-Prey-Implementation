@@ -4,114 +4,86 @@
 
 This framework provides a comprehensive suite for benchmarking and analyzing the performance of predator-prey simulation refactorings/implementations. The code has been structured to follow software engineering best practices including modularity, reusability, proper documentation, and type annotations.
 
-## Structure
-
-The performance experiment framework is organized into modular components:
+## Directory Structure
 
 ```
 performance_experiment/
 ├── performance_experiment.py      # Main entry point
-├── performance_core.py            # Core configuration and utilities
-├── performance_runner.py          # Simulation execution utilities
-├── performance_reporting.py       # Results handling and output
-├── experiment_grid.py             # Grid scaling experiment
-├── experiment_landscape.py        # Landscape proportion experiment
-├── experiment_cpu.py              # CPU scaling experiment
-├── experiment_matrix.py           # Full matrix experiment
-├── baseline.py                    # Original simulation implementation
-├── refactor_1.py                  # First refactored implementation
-├── refactor_2.py                  # Second refactored implementation
-├── . . . 
-├── refactor_n.py                  # N'th refactored implementation
-└── performance_results/           # Generated results directory
-    ├── grid_scaling/              # Grid scaling experiment results
-    ├── landscape_prop/            # Landscape proportion experiment results
-    ├── cpu_scaling/               # CPU scaling experiment results
-    └── full_matrix/               # Full matrix experiment results
+├── src/                           # Core source code
+│   ├── performance_core.py        # Core configuration and utilities
+│   ├── performance_runner.py      # Simulation execution utilities
+│   └── performance_reporting.py   # Results handling and output
+├── experiments/                   # Experiment implementations
+│   ├── experiment_grid.py         # Grid scaling experiment
+│   ├── experiment_landscape.py    # Landscape proportion experiment
+│   ├── experiment_cpu.py          # CPU scaling experiment
+│   └── experiment_matrix.py       # Full matrix experiment
+├── implementations/               # Simulation implementations
+│   ├── baseline.py                # Original simulation implementation
+│   ├── refactor_1.py              # First refactored implementation
+│   ├── refactor_2.py              # Second refactored implementation
+│   ├── refactor_3.py              # Third refactored implementation
+│   └── simulate_predator_prey_wrapper.py  # Wrapper for main implementation
+├── utils/                         # Utility scripts
+│   └── create_dats.py             # Data file generator
+└── scripts/                       # Shell scripts
+    ├── run_experiment_set_1.sh    # Batch execution script #1
+    └── run_experiment_set_2.sh    # Batch execution script #2
 ```
-## Dependencies
 
-The framework requires:
-- Python 3.8+
-- NumPy
-- psutil (for CPU monitoring)
+## Quick Start
 
-## How to Use
-
-### Basic Usage
-
-Run all experiments using the baseline implementation:
+Run all experiments with the baseline implementation:
 
 ```bash
-python performance_experiment.py
+python -m performance_experiment.performance_experiment
 ```
 
-Run all experiments using a specific refactored implementation:
+Run a specific experiment with a particular implementation:
 
 ```bash
-python performance_experiment.py --implementation refactor_1
+python -m performance_experiment.performance_experiment --implementation refactor_2 --experiments grid
 ```
 
-### Running Specific Experiments
+## Command-Line Arguments
 
-You can choose to run only specific experiments:
+- `--implementation` or `-i`: Implementation to use (baseline, refactor_1, refactor_2, etc.)
+- `--experiments` or `-e`: Experiments to run (grid, landscape, cpu, matrix, or all)
 
-```bash
-# Run only grid scaling experiment with refactor_2
-python performance_experiment.py --implementation refactor_2 --experiments grid
+## Available Experiments
 
-# Run landscape and CPU experiments with baseline
-python performance_experiment.py --experiments landscape cpu
+| Experiment | Description | Flag |
+|------------|-------------|------|
+| Grid Scaling | Tests how performance scales with increasing grid sizes | `grid` |
+| Landscape Proportion | Tests performance with different land vs. water proportions | `landscape` |
+| CPU Scaling | Tests performance with varying numbers of CPU cores | `cpu` |
+| Full Matrix | Comprehensive test of all grid sizes and land proportions | `matrix` |
 
-# Run full matrix experiment with refactor_3
-python performance_experiment.py --implementation refactor_3 --experiments matrix
-```
+## Adding New Implementations
 
-### Available Experiments
+To add a new implementation for testing:
 
-- `grid`: Grid size scaling experiment
-- `landscape`: Landscape proportion experiment
-- `cpu`: CPU scaling experiment
-- `matrix`: Full matrix experiment
-- `all`: Run all experiments (default)
+1. Create a new file `implementations/refactor_X.py` (where X is the next number)
+2. Ensure it has the same interface as baseline.py (functions `getVersion()`, `simCommLineIntf()`, and `sim()`)
+3. Run your experiments with `--implementation refactor_X`
 
-### Available Implementations
+## Utility Scripts
 
-The framework automatically detects available implementations in the current directory:
+- `utils/create_dats.py`: Generate .dat landscape files for experiments
+- `scripts/run_experiment_set_1.sh`: Run grid, landscape, and matrix experiments for all implementations
+- `scripts/run_experiment_set_2.sh`: Run grid experiments for refactor_2 and refactor_3, and cpu experiments for refactor_3
 
-- `baseline`: Original implementation
-- `refactor_1`, `refactor_2`, etc.: Refactored implementations
+## Results
 
-## Result Files
+Results are saved in the `performance_results/` directory with JSON files named according to the experiment type and implementation used (e.g., `BASELINE_grid_scaling.json`).
 
-Results will be saved in the `performance_results/` directory with filenames reflecting the implementation used:
+Each JSON file contains metadata about the experiment conditions and detailed performance results.
 
-- `BASELINE_grid_scaling.json`
-- `REFACTOR_1_grid_scaling.json`
-- `REFACTOR_2_landscape_prop.json` 
-- etc.
+## Visualization
 
-## Example Usage Sequence
-
-To benchmark all implementations:
-
-```bash
-# Run baseline
-python performance_experiment.py --implementation baseline
-
-# Run first refactored implementation
-python performance_experiment.py --implementation refactor_1
-
-# Run second refactored implementation
-python performance_experiment.py --implementation refactor_2
-
-# Run third refactored implementation
-python performance_experiment.py --implementation refactor_3
-```
-
-You can then compare the JSON result files to evaluate the performance improvements between implementations.
+Results can be visualized using the Jupyter notebook in `performance_results/plot_performance_results.ipynb`.
 
 ## Author
 
-s2659865
+s2659865  
 April 2025

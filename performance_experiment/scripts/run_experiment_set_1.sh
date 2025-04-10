@@ -2,6 +2,9 @@
 # run_experiment_set_1.sh
 # Runs grid, landscape, and matrix experiments for selected implementations
 
+# Change to the project root directory
+cd "$(dirname "$0")/.."
+
 # List of implementations
 implementations=("baseline" "refactor_1" "refactor_2" "refactor_3")
 
@@ -14,7 +17,7 @@ for impl in "${implementations[@]}"; do
     echo "====================================================="
     echo "Running '$exp' experiment using '$impl' implementation..."
     echo "====================================================="
-    python performance_experiment.py --implementation "$impl" --experiments "$exp"
+    python -m performance_experiment.performance_experiment --implementation "$impl" --experiments "$exp"
     echo ""
   done
 done

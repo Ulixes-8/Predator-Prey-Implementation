@@ -18,7 +18,7 @@ import argparse
 from typing import Dict, List, Any
 
 # Import core modules
-from performance_core import (
+from performance_experiment.src.performance_core import (
     print_system_info,
     ensure_results_dirs,
     get_experiment_tag,
@@ -28,10 +28,10 @@ from performance_core import (
 )
 
 # Import experiment modules
-from experiment_grid import run_grid_scaling_experiment
-from experiment_landscape import run_landscape_prop_experiment
-from experiment_cpu import run_cpu_scaling_experiment
-from experiment_matrix import run_full_matrix_experiment
+from performance_experiment.experiments.experiment_grid import run_grid_scaling_experiment
+from performance_experiment.experiments.experiment_landscape import run_landscape_prop_experiment
+from performance_experiment.experiments.experiment_cpu import run_cpu_scaling_experiment
+from performance_experiment.experiments.experiment_matrix import run_full_matrix_experiment
 
 # ── Command-line Argument Processing ───────────────────────────────────────────
 def parse_arguments():

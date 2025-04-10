@@ -15,15 +15,15 @@ import sys
 from typing import Dict, List, Any
 
 # Import from other modules
-from performance_core import (
+from performance_experiment.src.performance_core import (
     LAND_PROPS,
     DEFAULT_GRID,
     SEEDS,
     RESULTS_DIR,
     get_experiment_tag
 )
-from performance_runner import benchmark
-from performance_reporting import save_json, print_summary_table
+from performance_experiment.src.performance_runner import benchmark
+from performance_experiment.src.performance_reporting import save_json, print_summary_table
 
 # ── Landscape Proportion Experiment ───────────────────────────────────────────
 def run_landscape_prop_experiment() -> Dict[str, Dict[str, List[float]]]:

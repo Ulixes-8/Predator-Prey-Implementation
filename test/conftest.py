@@ -14,7 +14,7 @@ import os
 import sys
 
 # Add the current directory to the path so imports work correctly
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import fixtures to make them available globally
-from test_fixtures import available_refactorings, all_animal_files
+from test.utils.test_fixtures import available_refactorings, all_animal_files

@@ -15,8 +15,8 @@ import sys
 import pytest
 from typing import List
 
-# Add the current directory to the path so imports work correctly
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add the project root to the path so imports work correctly
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def run_tests() -> int:
     """

@@ -9,5 +9,3 @@ Version: 4.0
 Author: s2659865
 Date: April 2025
 """
-
-from .simulate_predator_prey import getVersion, simCommLineIntf, sim

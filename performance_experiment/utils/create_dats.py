@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """
 create_dats.py
@@ -20,7 +19,9 @@ from typing import List
 
 # ─── Output Configuration ──────────────────────────────────────────────────────
 # Directory where generated .dat files will be stored
-OUTPUT_DIR = os.path.join("..", "animals")
+# Using relative path from the project root
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "animals")
 
 # ─── File Generator Function ───────────────────────────────────────────────────
 def create_performance_dat_file(width: int, height: int, value: int = 21) -> None:

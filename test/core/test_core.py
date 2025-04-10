@@ -16,12 +16,12 @@ import importlib.util
 import pytest
 from typing import List
 
-# Add the current directory to the path so imports work correctly
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add the project root to the path so imports work correctly
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Import from utility modules
-from test_utilities import PERF_DIR, PREDATOR_PREY_DIR, captured_output, temporary_directory
-from test_fixtures import available_refactorings
+from test.utils.test_utilities import IMPL_DIR, PREDATOR_PREY_DIR, captured_output, temporary_directory
+from test.utils.test_fixtures import available_refactorings
 
 # ─── Interface Tests ──────────────────────────────────────────────────────────
 class TestRefactoringCore:
@@ -54,7 +54,7 @@ class TestRefactoringCore:
             # Import the module
             spec = importlib.util.spec_from_file_location(
                 refactor_name, 
-                os.path.join(PERF_DIR, f"{refactor_name}.py")
+                os.path.join(IMPL_DIR, f"{refactor_name}.py")
             )
             assert spec is not None, f"Could not create spec for {refactor_name}"
             assert spec.loader is not None, f"Could not create loader for {refactor_name}"
@@ -84,7 +84,7 @@ class TestRefactoringCore:
             # Import the refactored module
             spec = importlib.util.spec_from_file_location(
                 refactor_name, 
-                os.path.join(PERF_DIR, f"{refactor_name}.py")
+                os.path.join(IMPL_DIR, f"{refactor_name}.py")
             )
             assert spec is not None, f"Could not create spec for {refactor_name}"
             assert spec.loader is not None, f"Could not create loader for {refactor_name}"
@@ -118,7 +118,7 @@ class TestRefactoringImplementation:
             assert os.path.exists(os.path.join(PREDATOR_PREY_DIR, f"{refactor_name}.py")), "Main implementation not found"
             return
             
-        refactor_path = os.path.join(PERF_DIR, f"{refactor_name}.py")
+        refactor_path = os.path.join(IMPL_DIR, f"{refactor_name}.py")
         if not os.path.exists(refactor_path):
             pytest.skip(f"Refactored implementation {refactor_name} not found")
     
@@ -131,7 +131,7 @@ class TestRefactoringImplementation:
         """
         try:
             # Import test utility functions
-            from test_utilities import load_refactored_implementation
+            from test.utils.test_utilities import load_refactored_implementation
             
             # Try to load the refactored implementation
             refactored_sim = load_refactored_implementation(refactor_name)
@@ -148,7 +148,7 @@ class TestRefactoringImplementation:
         """
         try:
             # Import test utility functions
-            from test_utilities import load_refactored_implementation, ANIMALS_DIR
+            from test.utils.test_utilities import load_refactored_implementation, ANIMALS_DIR
             
             # Try to load the refactored implementation
             refactored_sim = load_refactored_implementation(refactor_name)

@@ -23,7 +23,7 @@ from typing import Dict, Any, Optional
 
 # ── Directories and Paths ──────────────────────────────────────────────────────
 # Base directories
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 LANDSCAPE_DIR = os.path.join(PROJECT_ROOT, "animals")
 RESULTS_DIR = "performance_results"
@@ -52,7 +52,7 @@ def set_implementation(implementation: str) -> None:
     
     # Dynamically import the specified implementation
     try:
-        implementation_module = importlib.import_module(implementation)
+        implementation_module = importlib.import_module(f"performance_experiment.implementations.{implementation}")
         SIM_COMMAND_LINE_INTERFACE = implementation_module.simCommLineIntf
     except (ImportError, AttributeError) as e:
         print(f"[ERROR] Failed to import implementation '{implementation}': {e}")
@@ -86,25 +86,26 @@ def get_sim_command_line_interface():
 
 def get_available_implementations() -> list:
     """
-    Get a list of available implementations in the current directory.
+    Get a list of available implementations in the implementations directory.
     
     Returns:
         list: List of implementation module names
     """
     implementations = []
+    impl_dir = os.path.join(SCRIPT_DIR, "implementations")
     
     # Check for baseline
-    if os.path.exists(os.path.join(SCRIPT_DIR, "baseline.py")):
+    if os.path.exists(os.path.join(impl_dir, "baseline.py")):
         implementations.append("baseline")
     
     # Check for main implementation wrapper
-    if os.path.exists(os.path.join(SCRIPT_DIR, "simulate_predator_prey_wrapper.py")):
+    if os.path.exists(os.path.join(impl_dir, "simulate_predator_prey_wrapper.py")):
         implementations.append("simulate_predator_prey_wrapper")
     
     # Check for refactored implementations
     for i in range(1, 10):  # Assuming we won't have more than 9 refactored versions
         refactor_file = f"refactor_{i}.py"
-        if os.path.exists(os.path.join(SCRIPT_DIR, refactor_file)):
+        if os.path.exists(os.path.join(impl_dir, refactor_file)):
             implementations.append(f"refactor_{i}")
     
     return implementations

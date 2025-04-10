@@ -17,15 +17,15 @@ import numpy as np
 from typing import Dict, List, Any
 
 # Import from other modules
-from performance_core import (
+from performance_experiment.src.performance_core import (
     GRID_SIZES,
     LAND_PROPS,
     SEEDS,
     RESULTS_DIR,
     get_experiment_tag
 )
-from performance_runner import benchmark
-from performance_reporting import save_json, print_summary_table
+from performance_experiment.src.performance_runner import benchmark
+from performance_experiment.src.performance_reporting import save_json, print_summary_table
 
 # ── Full Matrix Experiment ────────────────────────────────────────────────────
 def run_full_matrix_experiment() -> Dict[str, Dict[str, List[float]]]:

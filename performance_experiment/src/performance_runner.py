@@ -21,7 +21,7 @@ import psutil
 from typing import Dict, List, Tuple, Any, Optional
 
 # Import core functionality
-from performance_core import (
+from performance_experiment.src.performance_core import (
     LANDSCAPE_DIR,
     cleanup_artifacts,
     DEFAULT_CPU_COUNT,

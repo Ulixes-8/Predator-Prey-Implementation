@@ -22,15 +22,16 @@ from contextlib import contextmanager
 from typing import Dict, List, Tuple, Generator, Any, Callable
 
 # Define paths
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 ANIMALS_DIR = os.path.join(PROJECT_ROOT, "animals")
 PERF_DIR = os.path.join(PROJECT_ROOT, "performance_experiment")
+IMPL_DIR = os.path.join(PERF_DIR, "implementations")
 PREDATOR_PREY_DIR = os.path.join(PROJECT_ROOT, "predator_prey")
 sys.path.append(PROJECT_ROOT)
 
 # Import the original simulation
-from performance_experiment.baseline import sim as original_sim
+from performance_experiment.implementations.baseline import sim as original_sim
 
 # Import the main implementation
 from predator_prey.simulate_predator_prey import sim as main_sim
@@ -90,7 +91,7 @@ def load_refactored_implementation(refactor_name: str) -> Callable:
     if refactor_name == "simulate_predator_prey":
         return main_sim
         
-    refactor_path = os.path.join(PERF_DIR, f"{refactor_name}.py")
+    refactor_path = os.path.join(IMPL_DIR, f"{refactor_name}.py")
     
     if not os.path.exists(refactor_path):
         raise ImportError(f"Refactored implementation {refactor_name} not found at {refactor_path}")
