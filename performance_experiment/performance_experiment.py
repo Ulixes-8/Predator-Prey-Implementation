@@ -43,12 +43,15 @@ def parse_arguments():
     """
     parser = argparse.ArgumentParser(description="Predator-Prey Simulation Performance Experiments")
     
+    # Get available implementations
+    available_implementations = get_available_implementations()
+    
     parser.add_argument(
         "-i", "--implementation",
         type=str,
         default=DEFAULT_IMPLEMENTATION,
-        choices=get_available_implementations(),
-        help=f"Implementation to use for experiments. Available: {', '.join(get_available_implementations())}"
+        choices=available_implementations,
+        help=f"Implementation to use for experiments. Available: {', '.join(available_implementations)}"
     )
     
     parser.add_argument(

@@ -97,6 +97,10 @@ def get_available_implementations() -> list:
     if os.path.exists(os.path.join(SCRIPT_DIR, "baseline.py")):
         implementations.append("baseline")
     
+    # Check for main implementation wrapper
+    if os.path.exists(os.path.join(SCRIPT_DIR, "simulate_predator_prey_wrapper.py")):
+        implementations.append("simulate_predator_prey_wrapper")
+    
     # Check for refactored implementations
     for i in range(1, 10):  # Assuming we won't have more than 9 refactored versions
         refactor_file = f"refactor_{i}.py"
@@ -139,7 +143,10 @@ def get_experiment_tag() -> str:
     Returns:
         str: The uppercase name of the current implementation (e.g., 'BASELINE', 'REFACTOR_1')
     """
-    return get_implementation().upper()
+    implementation = get_implementation()
+    if implementation == "simulate_predator_prey_wrapper":
+        return "MAIN_IMPLEMENTATION"
+    return implementation.upper()
 
 # ── System Information ───────────────────────────────────────────────────────────
 def get_system_info() -> Dict[str, Any]:
