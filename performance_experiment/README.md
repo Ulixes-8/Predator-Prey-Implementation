@@ -39,10 +39,10 @@ Run all experiments with the baseline implementation:
 python -m performance_experiment.performance_experiment
 ```
 
-Run a specific experiment with a particular implementation:
+Run a specific experiment (e.g., the final refactored code in predator_prey/simulate_predator_prey.py) with a particular implementation:
 
 ```bash
-python -m performance_experiment.performance_experiment --implementation refactor_2 --experiments grid
+python -m performance_experiment.performance_experiment --implementation simulate_predator_prey_wrapper --experiments grid
 ```
 
 ## Command-Line Arguments
