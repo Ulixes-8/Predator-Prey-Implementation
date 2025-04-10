@@ -128,8 +128,10 @@ DEFAULT_LAND_PROP = 0.75
 
 # CPU configurations
 DEFAULT_GRID = 160
-CPU_COUNTS = [4, 8, 16, 32]
-DEFAULT_CPU_COUNT = 32
+DEFAULT_CPU_COUNT = os.cpu_count()  # Default to the maximum available 
+
+# CPU counts should be 4 up to cpu count in increments of 4
+CPU_COUNTS = [n for n in range(4, DEFAULT_CPU_COUNT + 1, 4) if n <= DEFAULT_CPU_COUNT]
 
 # Repetition for statistical validity
 NUM_SEEDS = 3
