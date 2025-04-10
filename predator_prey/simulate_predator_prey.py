@@ -1,11 +1,17 @@
+#!/usr/bin/env python3
 """
+simulate_predator_prey.py
+
 Predator-prey simulation. Foxes and mice.
 
-Version 4.0, last updated in January 2025.
+Version 4.0, last updated in April 2025.
 
 This module implements a simulation of the interaction between foxes (predators)
 and field mice (prey) in a two-dimensional landscape. The simulation is based on
 partial differential equations that model birth, death, and diffusion processes.
+
+Author: s2659865
+Date: April 2025
 """
 from argparse import ArgumentParser
 import numpy as np

@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
 """
+simulation.py
+
 Core simulation logic for the predator-prey model.
 
 This module implements the main simulation loop and time step updates
 for the predator-prey dynamics.
+
+Author: s2659865
+Date: April 2025
 """
 import numpy as np
 from typing import Tuple

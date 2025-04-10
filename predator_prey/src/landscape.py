@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
 """
+landscape.py
+
 Landscape generation and management for the predator-prey simulation.
 
 This module provides functions for creating and manipulating the landscape
 in which the predator-prey simulation takes place.
+
+Author: s2659865
+Date: April 2025
 """
 import random
 import numpy as np

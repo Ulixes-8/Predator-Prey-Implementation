@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
 """
+io_handlers.py
+
 Input/output handlers for the predator-prey simulation.
 
 This module provides functions for reading input files and generating output
 files in CSV and PPM formats.
+
+Author: s2659865
+Date: April 2025
 """
 import os
 import numpy as np

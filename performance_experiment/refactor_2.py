@@ -1,10 +1,7 @@
-"""
-Predator-prey simulation. Foxes and mice.
+'''Predator-prey simulation. Foxes and mice.
 
 Version 4.0, last updated in January 2025.
-(This is refactor_2.py, focusing on NumPy vectorization of the update loop.)
-"""
-
+'''
 from argparse import ArgumentParser
 import numpy as np
 import random

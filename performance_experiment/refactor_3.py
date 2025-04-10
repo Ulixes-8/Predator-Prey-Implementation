@@ -1,10 +1,7 @@
-"""
-Predator-prey simulation. Foxes and mice.
+'''Predator-prey simulation. Foxes and mice.
 
 Version 4.0, last updated in January 2025.
-(This version defers all writes and preserves bit-for-bit output.)
-"""
-
+'''
 from argparse import ArgumentParser
 import numpy as np
 import random

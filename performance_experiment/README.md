@@ -29,64 +29,87 @@ performance_experiment/
     ├── cpu_scaling/               # CPU scaling experiment results
     └── full_matrix/               # Full matrix experiment results
 ```
-
-## Experiments
-
-The framework includes four main experiments:
-
-1. **Grid Scaling**: Tests how simulation performance scales with increasing grid sizes while keeping other parameters constant.
-
-2. **Landscape Proportion**: Tests how the proportion of land vs. water affects simulation performance.
-
-3. **CPU Scaling**: Tests how the simulation utilizes different numbers of CPU cores and how performance scales with increasing core counts.
-
-4. **Full Matrix**: Runs a comprehensive matrix of grid sizes and land proportions to provide a complete performance profile.
-
-## Usage
-
-To run all experiments:
-
-```bash
-python performance_experiment.py
-```
-
-To run individual experiments:
-
-```bash
-python experiment_grid.py        # Run only grid scaling experiment
-python experiment_landscape.py   # Run only landscape proportion experiment
-python experiment_cpu.py         # Run only CPU scaling experiment
-python experiment_matrix.py      # Run only full matrix experiment
-```
-
-## Refactoring Strategy
-
-The performance experiment framework allows you to test and compare multiple implementations of the predator-prey simulation:
-
-1. **baseline.py**: The original implementation (unchanged)
-2. **refactor_1.py**, **refactor_2.py**, etc.: Incrementally improved versions
-
-This approach enables precise attribution of performance gains to specific refactoring changes.
-
-## Results
-
-Results are stored in JSON format in the `performance_results/` directory, organized by experiment type. Each JSON file includes:
-
-- Comprehensive metadata (system information, experiment parameters, timestamp)
-- Raw timing results for each tested configuration
-- Statistical data (means, standard deviations)
-
-For CPU scaling experiments, additional metrics are recorded:
-- CPU utilization percentages
-- Number of active cores
-- Core utilization efficiency
-
 ## Dependencies
 
 The framework requires:
 - Python 3.8+
 - NumPy
 - psutil (for CPU monitoring)
+
+## How to Use
+
+### Basic Usage
+
+Run all experiments using the baseline implementation:
+
+```bash
+python performance_experiment.py
+```
+
+Run all experiments using a specific refactored implementation:
+
+```bash
+python performance_experiment.py --implementation refactor_1
+```
+
+### Running Specific Experiments
+
+You can choose to run only specific experiments:
+
+```bash
+# Run only grid scaling experiment with refactor_2
+python performance_experiment.py --implementation refactor_2 --experiments grid
+
+# Run landscape and CPU experiments with baseline
+python performance_experiment.py --experiments landscape cpu
+
+# Run full matrix experiment with refactor_3
+python performance_experiment.py --implementation refactor_3 --experiments matrix
+```
+
+### Available Experiments
+
+- `grid`: Grid size scaling experiment
+- `landscape`: Landscape proportion experiment
+- `cpu`: CPU scaling experiment
+- `matrix`: Full matrix experiment
+- `all`: Run all experiments (default)
+
+### Available Implementations
+
+The framework automatically detects available implementations in the current directory:
+
+- `baseline`: Original implementation
+- `refactor_1`, `refactor_2`, etc.: Refactored implementations
+
+## Result Files
+
+Results will be saved in the `performance_results/` directory with filenames reflecting the implementation used:
+
+- `BASELINE_grid_scaling.json`
+- `REFACTOR_1_grid_scaling.json`
+- `REFACTOR_2_landscape_prop.json` 
+- etc.
+
+## Example Usage Sequence
+
+To benchmark all implementations:
+
+```bash
+# Run baseline
+python performance_experiment.py --implementation baseline
+
+# Run first refactored implementation
+python performance_experiment.py --implementation refactor_1
+
+# Run second refactored implementation
+python performance_experiment.py --implementation refactor_2
+
+# Run third refactored implementation
+python performance_experiment.py --implementation refactor_3
+```
+
+You can then compare the JSON result files to evaluate the performance improvements between implementations.
 
 ## Author
 

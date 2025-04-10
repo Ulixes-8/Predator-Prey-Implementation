@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
 """
+validation.py
+
 Input validation utilities for the predator-prey simulation.
 
 This module provides functions for validating simulation parameters
 and input files to ensure they are within acceptable ranges.
+
+Author: s2659865
+Date: April 2025
 """
 from typing import Optional, Dict, Any, Union, List, Tuple
 import os

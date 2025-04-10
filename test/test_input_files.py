@@ -57,7 +57,7 @@ class TestInputFiles:
         for animal_file in all_animal_files:
             # Skip very large files to keep test duration reasonable
             file_size = os.path.getsize(animal_file)
-            if file_size > 10000:  # Skip files larger than ~1000KB
+            if file_size > 10000*100:  # Skip files larger than ~1000KB
                 continue
                 
             # Create full args tuple with this animal file

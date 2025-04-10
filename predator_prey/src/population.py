@@ -1,8 +1,14 @@
+#!/usr/bin/env python3
 """
+population.py
+
 Population dynamics for the predator-prey simulation.
 
 This module implements the core equations governing the interactions
 between predator and prey populations across the landscape.
+
+Author: s2659865
+Date: April 2025
 """
 import numpy as np
 from typing import Tuple
